@@ -1,7 +1,7 @@
 
-# Face recognition concierge to announce new visitors
+# Face recognition concierge
 
-## Tutorial Requirements
+## Requirements
 - Python version 3
 - A webcam (your laptop’s built-in webcam or an external one)
 - A [free Twilio SendGrid account](https://signup.sendgrid.com/) to send up to 100 free emails per day
@@ -25,7 +25,7 @@ If you’re on a Windows machine, enter these commands in a command prompt windo
     (venv) $ pip install -r requirements.txt
 
 ## Step 1: Create a custom face recognition dataset
-Create a new subfolder inside the `dataset` directory using your first name, like `Joyce`, to contain your photos.
+Create a new subfolder inside the `dataset` directory using your first name, like `Tarmica`, to contain your photos.
 
     (venv) $ python headshots.py Tarmica
 
