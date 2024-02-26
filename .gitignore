@@ -1,7 +1,2 @@
-venv/
-.env
-encodings.pickle
-
-# Joyce/
-Lucy/
-image.jpg
+lab/
+.vscode/
