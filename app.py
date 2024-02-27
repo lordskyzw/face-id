@@ -28,9 +28,9 @@ def facial_recognition():
         image_data = base64.b64decode(base_64_image)
         nparr = np.frombuffer(image_data, np.uint8)
         img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-        face_detected = DeepFace.extract_faces(img, enforce_detection=False)
+        face_detected = DeepFace.extract_faces(img, enforce_detection=False, detector_backend='yolov8')
     
-        if face_detected[0]['confidence']>0.7:
+        if face_detected[0]['confidence']>0.5:
             recognition_result = DeepFace.find(img_path=img, db_path=db_path, enforce_detection=False)
             faces_df = recognition_result[0]
             tup = recognition_result[0].shape
@@ -52,7 +52,7 @@ def facial_recognition():
             # No face detected
             return {
                 'statusCode': 200,
-                'body': json.dumps('No face is in the image')
+                'body': json.dumps(f'No face is in the image also confidence is {face_detected[0]["confidence"]}')
             }
     except Exception as e:
         return {

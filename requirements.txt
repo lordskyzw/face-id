@@ -2,3 +2,4 @@ deepface
 flask
 numpy
 opencv-python-headless
+ultralytics
