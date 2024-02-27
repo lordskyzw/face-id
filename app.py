@@ -8,6 +8,14 @@ app = Flask(__name__)
 db_path = "dataset"
 
 
+@app.route('/test', methods=['GET'])
+def test():
+    return {
+        'statusCode': 200,
+        'body': json.dumps('Server is running')
+    }
+
+
 @app.route('/facial_recognition', methods=['POST'])
 def facial_recognition():
     req = request.get_json()
