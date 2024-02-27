@@ -5,6 +5,8 @@ from flask import Flask, request
 
 app = Flask(__name__)
 
+db_path = "dataset"
+
 
 @app.route('/facial_recognition', methods=['POST'])
 def facial_recognition():
@@ -14,7 +16,6 @@ def facial_recognition():
         face_detected = DeepFace.extract_faces(base_64_image, enforce_detection=False)
     
         if face_detected[0]['confidence']>0.7:
-            db_path = "dataset"
             recognition_result = DeepFace.find(img_path=base_64_image, db_path=db_path, enforce_detection=False)
             faces_df = recognition_result[0]
             tup = recognition_result[0].shape
