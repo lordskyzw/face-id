@@ -1,4 +1,7 @@
 import os
+import base64
+import numpy as np
+import cv2
 import json
 from deepface import DeepFace
 from flask import Flask, request
@@ -22,10 +25,13 @@ def facial_recognition():
     req = request.get_json()
     try:
         base_64_image = req['image']
-        face_detected = DeepFace.extract_faces(base_64_image, enforce_detection=False)
+        image_data = base64.b64decode(base_64_image)
+        nparr = np.frombuffer(image_data, np.uint8)
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        face_detected = DeepFace.extract_faces(img, enforce_detection=False)
     
         if face_detected[0]['confidence']>0.7:
-            recognition_result = DeepFace.find(img_path=base_64_image, db_path=db_path, enforce_detection=False)
+            recognition_result = DeepFace.find(img_path=img, db_path=db_path, enforce_detection=False)
             faces_df = recognition_result[0]
             tup = recognition_result[0].shape
             
