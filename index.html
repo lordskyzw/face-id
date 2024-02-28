@@ -154,9 +154,9 @@
                 <img src="https://unsplash.it/40/40?image=20" alt="Camera Logo" class="mr-2">
                 <span class="font-semibold text-lg">Osiris</span>
             </div>
-            <form action="https://face-id.up.railway.app/search_person" class="flex items-center" method="post">
+            <form id="search-form" class="flex items-center" method="post">
                 <div class="flex items-center">
-                    <input type="text" placeholder="Search" class="border rounded-full py-2 px-4 mr-2">
+                    <input id="search-input" type="text" name="name" placeholder="Search" class="border rounded-full py-2 px-4 mr-2">
                     <button type="submit">Search</button>
                 </div>
             </form>
@@ -181,13 +181,131 @@
             </button>
         </div>
         <div class="bg-white shadow-md rounded-lg p-4 mt-8">
-            <div class="border-dashed border-4 border-gray-200 rounded-lg p-16 flex flex-col items-center justify-center">
+            <div class="border-dashed border-4 border-gray-200 rounded-lg p-16 flex flex-col items-center justify-center" id="drop-area">
                 <p class="text-gray-500 mb-4">Drag and drop photos here</p>
-                <input type="file" id="file-upload" class="hidden">
-                <label for="file-upload" class="bg-pink-200 text-pink-600 rounded-full py-2 px-4 cursor-pointer">Upload</label>
+                <input type="file" id="file-upload" class="hidden" multiple>
+                <button id="upload-button" class="bg-pink-200 text-pink-600 rounded-full py-2 px-4 cursor-pointer" disabled>Upload</button>
+                <p id="drop-counter" class="text-gray-500 mt-2"></p>
             </div>
         </div>
-    </div>
+        
+    <script>
+        document.getElementById('search-form').addEventListener('submit', function(event) {
+            event.preventDefault(); // Prevent the default form submission
+    
+            const searchName = document.getElementById('search-input').value;
+    
+            fetch('https://face-id.up.railway.app/search_person', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ name: searchName })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to search person.');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Response:', data);
+                // Handle the response as needed
+            })
+            .catch(error => {
+                console.error('Error:', error.message);
+            });
+        });
+    </script>
+
+
+    <script>
+        const dropArea = document.getElementById('drop-area');
+        const fileUpload = document.getElementById('file-upload');
+        const uploadButton = document.getElementById('upload-button');
+        let base64Images = [];
+    
+        dropArea.addEventListener('dragover', (event) => {
+            event.preventDefault();
+            dropArea.classList.add('bg-gray-100');
+        });
+    
+        dropArea.addEventListener('dragleave', () => {
+            dropArea.classList.remove('bg-gray-100');
+        });
+    
+        dropArea.addEventListener('drop', (event) => {
+            event.preventDefault();
+            dropArea.classList.remove('bg-gray-100');
+            
+            const files = event.dataTransfer.files;
+    
+            for (const file of files) {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => {
+                    base64Images.push(reader.result);
+                    updateDropCounter();
+                    uploadButton.removeAttribute('disabled');
+                };
+            }
+        });
+    
+        fileUpload.addEventListener('change', (event) => {
+            const files = event.target.files;
+    
+            for (const file of files) {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => {
+                    base64Images.push(reader.result);
+                    updateDropCounter();
+                    uploadButton.removeAttribute('disabled');
+                };
+            }
+        });
+    
+        uploadButton.addEventListener('click', () => {
+            if (base64Images.length > 0) {
+                sendImages(base64Images);
+            } else {
+                alert('Please drop photos first.');
+            }
+        });
+    
+        function sendImages(images) {
+            fetch('https://face-id.up.railway.app/facial_recognition', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ images })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to send images.');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Response:', data);
+            })
+            .catch(error => {
+                console.error('Error:', error.message);
+            })
+            .finally(() => {
+                // Clear the array after uploading
+                base64Images = [];
+                updateDropCounter(); // Reset drop counter
+                uploadButton.setAttribute('disabled', 'disabled');
+            });
+        }
+    
+        function updateDropCounter() {
+            document.getElementById('drop-counter').textContent = `Dropped ${base64Images.length} photo(s)`;
+        }
+    </script>
+        
     <script>
         document.getElementById('dark-mode-toggle').addEventListener('click', function() {
             document.body.classList.toggle('dark-mode');
