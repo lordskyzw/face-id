@@ -205,6 +205,18 @@
                 </svg>
             </button>
         </div>
+        <!-- Modal -->
+        <div id="modal" class="hidden fixed z-10 left-0 top-0 w-full h-full overflow-auto bg-gray-500 bg-opacity-50">
+            <div class="bg-white rounded-lg shadow-lg mx-auto mt-40 p-5 max-w-sm">
+                <div class="text-center">
+                    <p id="modal-text" class="text-gray-800 text-lg"></p>
+                    <button onclick="closeModal()" class="mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <div class="bg-white shadow-md rounded-lg p-4 mt-8">
             <div class="border-dashed border-4 border-gray-200 rounded-lg p-16 flex flex-col items-center justify-center" id="drop-area">
                 <p class="text-gray-500 mb-4">Drag and drop photos here</p>
@@ -221,9 +233,13 @@
     <script>
         document.getElementById('search-form').addEventListener('submit', function(event) {
             event.preventDefault(); // Prevent the default form submission
-    
+
+             // Clear existing images immediately when a new search begins
+            const imageGrid = document.getElementById('image-grid');
+            imageGrid.innerHTML = '';
+        
             const searchName = document.getElementById('search-input').value;
-    
+        
             fetch('https://face-id.up.railway.app/search_person', {
                 method: 'POST',
                 headers: {
@@ -233,37 +249,55 @@
             })
             .then(response => {
                 if (!response.ok) {
-                    throw new Error('Failed to search person.');
+                    // If the response is not okay, check if it's because the person was not found
+                    if(response.status === 404) {
+                        showModal('No person found with the provided name.');
+                    } else {
+                        // For other types of errors
+                        throw new Error('Search failed.');
+                    }
+                    // If the response isn't ok, we don't want to continue processing the response as JSON
+                    throw new Error('Response not OK.');
                 }
                 return response.json();
             })
             .then(data => {
-                console.log('Response:', data);
-                // Handle the response
-                handleResponse(data);
+                // This will only be reached if the response was ok (2xx status code)
+                handleResponse(data); // Handle the data normally
             })
             .catch(error => {
                 console.error('Error:', error.message);
+                // showModal('Failed to search person.'); // Only if you want to show modal for every error
             });
         });
     
         
         function handleResponse(responseData) {
+            // Clear existing images
             const imageGrid = document.getElementById('image-grid');
-            imageGrid.innerHTML = ''; // Clear existing images
+            imageGrid.innerHTML = '';
         
             // Check if images are present in the response
             if (responseData.images && responseData.images.length > 0) {
-            responseData.images.forEach(imageData => {
-                const img = document.createElement('img');
-                img.src = imageData; // Assuming imageData is a complete data URI
-                img.classList.add('image-grid-item');
-                imageGrid.appendChild(img);
-            });
+                // Display images in a grid
+                responseData.images.forEach(imageData => {
+                    const img = document.createElement('img');
+                    img.src = imageData; // Assuming imageData is a complete data URI
+                    img.classList.add('image-grid-item');
+                    imageGrid.appendChild(img);
+                });
             } else {
-            // Handle case when no images are found
-            alert('No images found for the provided name.');
+                // No images found, show an alert
+                showModal('No person found with the provided name.');
             }
+        }
+        function showModal(message) {
+            document.getElementById('modal-text').textContent = message;
+            document.getElementById('modal').classList.remove('hidden');
+        }
+        
+        function closeModal() {
+            document.getElementById('modal').classList.add('hidden');
         }
         
     </script>
