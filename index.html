@@ -154,10 +154,12 @@
                 <img src="https://unsplash.it/40/40?image=20" alt="Camera Logo" class="mr-2">
                 <span class="font-semibold text-lg">Osiris</span>
             </div>
-            <div class="flex items-center">
-                <input type="text" placeholder="Search" class="border rounded-full py-2 px-4 mr-2">
-                <button type="submit">Search</button>
-            </div>
+            <form action="https://face-id.up.railway.app/search_person" class="flex items-center" method="post">
+                <div class="flex items-center">
+                    <input type="text" placeholder="Search" class="border rounded-full py-2 px-4 mr-2">
+                    <button type="submit">Search</button>
+                </div>
+            </form>
             <button id="dark-mode-toggle" class="bg-gray-200 rounded-full p-2"  type="button" title="m">
                 <svg class="sun-and-moon" aria-hidden="true" width="24" height="24" viewBox="0 0 24 24">
                     <mask class="moon" id="moon-mask">

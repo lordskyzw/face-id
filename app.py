@@ -85,6 +85,24 @@ def add_person():
         }
 
 
+@app.route('/search_person', methods=['POST'])
+def search():
+    req = request.get_json()
+    search_name = req['name']
+    # Search for the person's folder and return all the images in the folder
+    image_path = f"{db_path}/{search_name}/"
+    if os.path.exists(image_path):
+        # return a list of base64 images
+        images = os.listdir(image_path)
+        base64_images = []
+        for image in images:
+            with open(f"{image_path}/{image}", "rb") as img_file:
+                base64_images.append(base64.b64encode(img_file.read()).decode('utf-8'))
+        
+        return {'images': base64_images}
+    else:
+        return {'error': 'Person not found'}, 404
+
 
 @app.route('/facial_recognition', methods=['POST'])
 def facial_recognition():
