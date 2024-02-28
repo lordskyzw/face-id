@@ -6,6 +6,7 @@ import json
 from deepface import DeepFace
 from flask import Flask, request
 from flask_cors import CORS
+from mimetypes import guess_type
 
 app = Flask(__name__)
 CORS(app) 
@@ -97,8 +98,11 @@ def search():
         images = os.listdir(image_path)
         base64_images = []
         for image in images:
-            with open(f"{image_path}/{image}", "rb") as img_file:
-                base64_images.append(base64.b64encode(img_file.read()).decode('utf-8'))
+            mime_type, _ = guess_type(image)
+            if mime_type is not None:
+                with open(f"{image_path}/{image}", "rb") as img_file:
+                    base64_str = base64.b64encode(img_file.read()).decode('utf-8')
+                    base64_images.append(f"data:{mime_type};base64,{base64_str}")
         
         return {'images': base64_images}
     else:

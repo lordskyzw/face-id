@@ -210,13 +210,40 @@
             })
             .then(data => {
                 console.log('Response:', data);
-                // Handle the response as needed
+                // Handle the response
+                handleResponse(data);
             })
             .catch(error => {
                 console.error('Error:', error.message);
             });
         });
+    
+        function handleResponse(responseData) {
+            // Check if images are present in the response
+            if (responseData.images && responseData.images.length > 0) {
+                // Create a modal pop-up or any other UI element
+                const modal = document.createElement('div');
+                modal.classList.add('modal');
+    
+                // Iterate through the array of image data
+                responseData.images.forEach(imageData => {
+                    // Create an image element
+                    const img = document.createElement('img');
+                    img.src = imageData;
+    
+                    // Append the image to the modal content
+                    modal.appendChild(img);
+                });
+    
+                // Append the modal to the body
+                document.body.appendChild(modal);
+            } else {
+                // Handle case when no images are found
+                alert('No images found for the provided name.');
+            }
+        }
     </script>
+        
 
 
     <script>
