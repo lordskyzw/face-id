@@ -89,24 +89,30 @@ def add_person():
 
 @app.route('/search_person', methods=['POST'])
 def search():
+    person_found = False
     req = request.get_json()
     search_name = req['name']
-    # Search for the person's folder and return all the images in the folder
-    image_path = f"{db_path}/{search_name}/"
-    if os.path.exists(image_path):
-        # return a list of base64 images
-        images = os.listdir(image_path)
-        base64_images = []
-        for image in images:
-            mime_type, _ = guess_type(image)
-            if mime_type is not None:
-                with open(f"{image_path}/{image}", "rb") as img_file:
-                    base64_str = base64.b64encode(img_file.read()).decode('utf-8')
-                    base64_images.append(f"data:{mime_type};base64,{base64_str}")
+    for dir in os.listdir(db_path):
+        if dir.lower() == search_name.lower():
+            person_found = True
+            image_path = f"{db_path}/{dir}/"
+            images = os.listdir(image_path)
+            base64_images = []
+            for image in images:
+                mime_type, _ = guess_type(image)
+                if mime_type is not None:
+                    with open(f"{image_path}/{image}", "rb") as img_file:
+                        base64_str = base64.b64encode(img_file.read()).decode('utf-8')
+                        base64_images.append(f"data:{mime_type};base64,{base64_str}")
+            
+            return {'images': base64_images}
         
-        return {'images': base64_images}
-    else:
-        return {'error': 'Person not found'}, 404
+    if not person_found:
+        return {
+            'statusCode': 404,
+            'body': json.dumps('Person not found')
+        }
+    
 
 
 @app.route('/facial_recognition', methods=['POST'])
