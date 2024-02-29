@@ -359,12 +359,12 @@
         });
     
         function sendImages(images) {
-            fetch('https://face-id.up.railway.app/facial_recognition', {
+            fetch('http://localhost:5000/add_person', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ images })
+                body: JSON.stringify({ images: images }) // Make sure the key matches with the server-side
             })
             .then(response => {
                 if (!response.ok) {

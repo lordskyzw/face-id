@@ -3,6 +3,7 @@ import base64
 import numpy as np
 import cv2
 import json
+from concurrent.futures import ProcessPoolExecutor
 from deepface import DeepFace
 from flask import Flask, request
 from flask_cors import CORS
@@ -14,7 +15,7 @@ CORS(app)
 db_path = "dataset"
 
 
-@app.route('/test', methods=['GET'])
+@app.route('/', methods=['GET'])
 def test():
     return {
         'statusCode': 200,
@@ -24,67 +25,31 @@ def test():
 
 @app.route('/add_person', methods=['POST'])
 def add_person():
-# scenarios to consider
-# 1 photo
-# multiple photos
-
-# 1 photo
-# if its one photo, it could be a photo of a person or a photo with multiple people
-    
-    
-    
-    
-#this function receives images and adds them to a general folder first 
-#then  it extracts faces from the images and attempts to recognize the faces before and save them in a folder(s) with person(s) name(S)
-#one picture can contain multiple faces and the function will create a folder for each person
-#if the persons name already exists, it adds the new faces to the existing folder
-#if the persons name does not exist, it creates a new folder with the persons name
-#the function to extract faces is DeepFace.extract_faces()
-
     req = request.get_json()
-    try:
-        base_64_image = req['image']
-        image_data = base64.b64decode(base_64_image)
-        nparr = np.frombuffer(image_data, np.uint8)
-        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-        face_detected = DeepFace.extract_faces(img, enforce_detection=False, detector_backend='yolov8')
-        unprocessed = "unprocessed"
-        
-        if len(face_detected)>0:
-            # Save the image to the dataset folder
-            image_path = f"{db_path}/unprocessed/"
-            if not os.path.exists(image_path):
-                os.makedirs(image_path)
-            cv2.imwrite(f"{image_path}/{unprocessed}_{len(os.listdir(image_path))}.jpg", img)
-            for face in face_detected:
-                # attempt to recognize the face
-                recognition_result = DeepFace.find(img_path=face, db_path=db_path, enforce_detection=False)
-                faces_df = recognition_result[0]
-                tup = recognition_result[0].shape
-                
-                if tup[0]>1:
-                    identity = faces_df.iloc[0,0]
-                    person_name = identity.split('/')[-2]
-                    # Save the face to the person's folder
-                    image_path = f"{db_path}/{person_name}/"
-                    if not os.path.exists(image_path):
-                        os.makedirs(image_path)
-                    cv2.imwrite(f"{image_path}/{person_name}_{len(os.listdir(image_path))}.jpg", img)
-                    
-            return {
-                'statusCode': 200,
-                'body': json.dumps('Person added successfully')
-            }
-        else:
-            return {
-                'statusCode': 200,
-                'body': json.dumps('No face detected in the image')
-            }
-    except Exception as e:
-        return {
-            'statusCode': 500,
-            'body': json.dumps(f'Error processing the image: {str(e)}')
-        }
+    images = req.get('images')  # This should be an array of base64-encoded strings
+    
+    if images:
+        for base_64_image in images:
+            # Assume the base64 string is complete with the necessary header
+            header, encoded = base_64_image.split(",", 1)
+            data = base64.b64decode(encoded)
+            
+            # You can now save this data to a file or process it further
+            # For example, let's write it to a temporary file
+            with open('unprocessed/temp_image.jpg', 'wb') as f:
+                f.write(data)
+                print('Image saved to temp_image.jpg')
+            
+            # Now you can use DeepFace to process the image
+            # faces = DeepFace.extract_faces(img_path = 'temp_image.jpg', ...)
+            # Process the faces as needed
+
+            # Make sure to remove the temporary file if you're done with it
+            #os.remove('temp_image.jpg')
+
+        return {'status': 'success'}, 200
+    else:
+        return {'error': 'No images provided'}, 400
 
 
 @app.route('/search_person', methods=['POST'])
