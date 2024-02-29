@@ -8,6 +8,13 @@ from deepface import DeepFace
 from flask import Flask, request
 from flask_cors import CORS
 from mimetypes import guess_type
+from pathlib import Path
+from uuid import uuid4  
+from utils import match_face
+import logging
+
+
+
 
 app = Flask(__name__)
 CORS(app) 
@@ -29,27 +36,31 @@ def add_person():
     images = req.get('images')  # This should be an array of base64-encoded strings
     
     if images:
+        # Ensure the 'unprocessed' directory exists
+        unprocessed_dir = Path('unprocessed')
+        unprocessed_dir.mkdir(parents=True, exist_ok=True)
+
+        saved_image_paths = []  # To store paths of saved images
+
         for base_64_image in images:
-            # Assume the base64 string is complete with the necessary header
             header, encoded = base_64_image.split(",", 1)
             data = base64.b64decode(encoded)
-            
-            # You can now save this data to a file or process it further
-            # For example, let's write it to a temporary file
-            with open('unprocessed/temp_image.jpg', 'wb') as f:
+    
+            unique_filename = f"temp_image_{uuid4()}.jpg"
+            image_path = unprocessed_dir / unique_filename
+
+            # Save the image data to a file in the 'unprocessed' directory
+            with open(image_path, 'wb') as f:
                 f.write(data)
-                print('Image saved to temp_image.jpg')
-            
-            # Now you can use DeepFace to process the image
-            # faces = DeepFace.extract_faces(img_path = 'temp_image.jpg', ...)
-            # Process the faces as needed
+                print(f'Image saved to {image_path}')
+            try:
+                match_face(image=image_path, db_path=db_path)
+            except Exception as e:
+                logging.error(f"ERROR IN match_face() function: {e}")
+                return {'error': f"Error in match_face() function{e}", 'statusCode': 500}
 
-            # Make sure to remove the temporary file if you're done with it
-            #os.remove('temp_image.jpg')
-
-        return {'status': 'success'}, 200
-    else:
-        return {'error': 'No images provided'}, 400
+            # Add the path to the list of saved image paths
+            saved_image_paths.append(str(image_path))
 
 
 @app.route('/search_person', methods=['POST'])
@@ -78,47 +89,6 @@ def search():
             'body': json.dumps('Person not found')
         }
     
-
-
-@app.route('/facial_recognition', methods=['POST'])
-def facial_recognition():
-    req = request.get_json()
-    try:
-        base_64_image = req['image']
-        image_data = base64.b64decode(base_64_image)
-        nparr = np.frombuffer(image_data, np.uint8)
-        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-        face_detected = DeepFace.extract_faces(img, enforce_detection=False, detector_backend='yolov8')
-    
-        if face_detected[0]['confidence']>0.5:
-            recognition_result = DeepFace.find(img_path=img, db_path=db_path, enforce_detection=False)
-            faces_df = recognition_result[0]
-            tup = recognition_result[0].shape
-            
-            if tup[0]>1:
-                identity = faces_df.iloc[0,0]  # Extract the person's name
-                person_name = identity.split('/')[-2]
-                return {
-                    'statusCode': 200,
-                    'body': json.dumps(f'Person identified: {person_name}')
-                }
-            else:
-                # Face not recognized
-                return {
-                    'statusCode': 200,
-                    'body': json.dumps('Unknown human detected')
-                }
-        else:
-            # No face detected
-            return {
-                'statusCode': 200,
-                'body': json.dumps(f'No face is in the image also confidence is {face_detected[0]["confidence"]}')
-            }
-    except Exception as e:
-        return {
-            'statusCode': 500,
-            'body': json.dumps(f'Error processing the image: {str(e)}')
-        }
 
 
 if __name__ == '__main__':
