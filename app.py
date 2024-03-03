@@ -72,11 +72,9 @@ def search():
     person_found = False
     req = request.get_json()
     search_name = req['name']
-     # Fetch all directory names
     dirs = os.listdir(db_path)
-    # Use fuzzy matching to find the closest match
     closest_match, score = process.extractOne(search_name, dirs)
-    if score > 80:  # Assuming 80 as a threshold for a close match
+    if score > 80:
         image_path = f"{db_path}/{closest_match}/"
         images = os.listdir(image_path)
         base64_images = []
