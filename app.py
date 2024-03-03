@@ -5,6 +5,7 @@ import cv2
 import json
 from concurrent.futures import ProcessPoolExecutor
 from deepface import DeepFace
+from fuzzywuzzy import process
 from flask import Flask, request
 from flask_cors import CORS
 from mimetypes import guess_type
@@ -66,30 +67,32 @@ def add_person():
 
 @app.route('/search_person', methods=['POST'])
 def search():
+    '''we need to implement a search-safe feature'''
+
     person_found = False
     req = request.get_json()
     search_name = req['name']
-    for dir in os.listdir(db_path):
-        if dir.lower() == search_name.lower():
-            person_found = True
-            image_path = f"{db_path}/{dir}/"
-            images = os.listdir(image_path)
-            base64_images = []
-            for image in images:
-                mime_type, _ = guess_type(image)
-                if mime_type is not None:
-                    with open(f"{image_path}/{image}", "rb") as img_file:
-                        base64_str = base64.b64encode(img_file.read()).decode('utf-8')
-                        base64_images.append(f"data:{mime_type};base64,{base64_str}")
-            
-            return {'images': base64_images}
+     # Fetch all directory names
+    dirs = os.listdir(db_path)
+    # Use fuzzy matching to find the closest match
+    closest_match, score = process.extractOne(search_name, dirs)
+    if score > 80:  # Assuming 80 as a threshold for a close match
+        image_path = f"{db_path}/{closest_match}/"
+        images = os.listdir(image_path)
+        base64_images = []
+        for image in images:
+            mime_type, _ = guess_type(image)
+            if mime_type is not None:
+                with open(f"{image_path}/{image}", "rb") as img_file:
+                    base64_str = base64.b64encode(img_file.read()).decode('utf-8')
+                    base64_images.append(f"data:{mime_type};base64,{base64_str}")
         
-    if not person_found:
+        return {'images': base64_images}
+    else:
         return {
             'statusCode': 404,
-            'body': json.dumps('Person not found')
+            'body': json.dumps('Person not found. No close matches.')
         }
-    
 
 
 if __name__ == '__main__':
