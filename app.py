@@ -33,35 +33,36 @@ def test():
 @app.route('/add_person', methods=['POST'])
 def add_person():
     req = request.get_json()
-    images = req.get('images')  # This should be an array of base64-encoded strings
+    images = req.get('images') 
     
     if images:
-        # Ensure the 'unprocessed' directory exists
+        # Ensuring the 'unprocessed' directory exists
         unprocessed_dir = Path('unprocessed')
         unprocessed_dir.mkdir(parents=True, exist_ok=True)
-
-        saved_image_paths = []  # To store paths of saved images
+        saved_image_paths = [] 
 
         for base_64_image in images:
-            header, encoded = base_64_image.split(",", 1)
+            _, encoded = base_64_image.split(",", 1)
             data = base64.b64decode(encoded)
     
             unique_filename = f"temp_image_{uuid4()}.jpg"
             image_path = unprocessed_dir / unique_filename
 
-            # Save the image data to a file in the 'unprocessed' directory
             with open(image_path, 'wb') as f:
                 f.write(data)
                 print(f'Image saved to {image_path}')
+
             try:
-                match_face(image=image_path, db_path=db_path)
+                matchedFaces = match_face(image=image_path, db_path=db_path)
             except Exception as e:
                 logging.error(f"ERROR IN match_face() function: {e}")
                 return {'error': f"Error in match_face() function{e}", 'statusCode': 500}
 
-            # Add the path to the list of saved image paths
             saved_image_paths.append(str(image_path))
-
+            os.remove(image_path)
+        
+        return {'matchedFaces': matchedFaces, 'statusCode': 200}
+            
 
 @app.route('/search_person', methods=['POST'])
 def search():
