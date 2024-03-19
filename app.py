@@ -1,10 +1,7 @@
 import os
 import base64
-import numpy as np
-import cv2
 import json
 from concurrent.futures import ProcessPoolExecutor
-from deepface import DeepFace
 from fuzzywuzzy import process
 from flask import Flask, request
 from flask_cors import CORS
@@ -33,6 +30,9 @@ def test():
 
 @app.route('/add_person', methods=['POST'])
 def add_person():
+    '''1.) receives base64 images
+    2.) sorts matched faces into their appropriate directories
+    TODO: add a way to identify unmatched faces and then ask for identification'''
     req = request.get_json()
     images = req.get('images') 
     
@@ -43,6 +43,7 @@ def add_person():
         saved_image_paths = [] 
 
         for base_64_image in images:
+            # for eaach base64 encoded image, decode it and save it in unprocessed directory
             _, encoded = base_64_image.split(",", 1)
             data = base64.b64decode(encoded)
     
@@ -51,10 +52,12 @@ def add_person():
 
             with open(image_path, 'wb') as f:
                 f.write(data)
-                print(f'Image saved to {image_path}')
+                logging.info(f'Image saved to {image_path}')
 
             try:
+                #find recognized faces in the image
                 matchedFaces = match_face(image=image_path, db_path=db_path)
+                logging.info("Successfully ran match_face() function")
             except Exception as e:
                 logging.error(f"ERROR IN match_face() function: {e}")
                 return {'error': f"Error in match_face() function{e}", 'statusCode': 500}
@@ -67,9 +70,6 @@ def add_person():
 
 @app.route('/search_person', methods=['POST'])
 def search():
-    '''we need to implement a search-safe feature'''
-
-    person_found = False
     req = request.get_json()
     search_name = req['name']
     dirs = os.listdir(db_path)
@@ -94,5 +94,5 @@ def search():
 
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))  # Use the PORT environment variable if it's set, otherwise default to 5000
+    port = int(os.environ.get('PORT', 5000))
     app.run(debug=False, host='0.0.0.0', port=port)

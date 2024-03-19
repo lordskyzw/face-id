@@ -29,7 +29,7 @@ def match_face(image: Union[str, Path], db_path: Union[str, Path]) -> List:
         .2) compare it with the images in the dataset directory
         .3) if a match is found, write the image to the respective directory and delete the image from the cropped directory'''
         _, facial_area, confidence = face_info['face'], face_info['facial_area'], face_info['confidence']
-        if confidence > 0.5:
+        if confidence > 0.7:
             # crop the face from the image and save it to cropped directory and return path of the cropped image
             face_image_path = Path('cropped') / f"{uuid4()}.jpg"
             face_image_path.parent.mkdir(exist_ok=True)
@@ -53,6 +53,7 @@ def match_face(image: Union[str, Path], db_path: Union[str, Path]) -> List:
             face_image_path = Path('cropped') / f"{uuid4()}.jpg"
             face_image_path.parent.mkdir(exist_ok=True)
             cropped_face.save(face_image_path)
+            #TODO find out what happens if you add an unrecognized face
             recognition_results = DeepFace.find(
                 img_path=str(face_image_path),
                 db_path=str(db_path),
