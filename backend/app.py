@@ -8,7 +8,7 @@ from flask_cors import CORS
 from mimetypes import guess_type
 from pathlib import Path
 from uuid import uuid4  
-from utils import match_face
+from backend.utils import match_face
 import logging
 
 
