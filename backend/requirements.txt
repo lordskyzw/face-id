@@ -1,4 +1,5 @@
 deepface
+tf-keras
 flask
 numpy
 pandas

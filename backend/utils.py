@@ -10,7 +10,8 @@ from typing import Union, List
 from bson.binary import Binary
 
 
-db_uri = os.environ.get("MONGO_DB")
+db_uri = os.environ.get("MONGO_URL")
+db_path = Path("dataset")
 
 def store_unrecognized_face(face_image_path: Path, face_id: str, db):
     '''Store the unmatched face image and its ID in MongoDB.'''
@@ -18,7 +19,7 @@ def store_unrecognized_face(face_image_path: Path, face_id: str, db):
         encoded_image = Binary(image_file.read())  # Encode the image file to binary format for MongoDB
     db.unmatched_faces.insert_one({"face_id": str(face_id), "image": encoded_image})
 
-def update_unrecognized_face_name(face_id: str, person_name: str, db_path: Union[str, Path], db_uri=db_uri, db_name="face_recognition_db") -> bool:
+def update_unrecognized_face_name(face_id: str, person_name: str, db_path: Union[str, Path], db_uri=db_uri, db_name="faceid") -> bool:
     '''Update the name for an unrecognized face in the MongoDB database and move the picture to the named directory.'''
 
     # Ensure db_path is a Path object
@@ -56,7 +57,7 @@ def update_unrecognized_face_name(face_id: str, person_name: str, db_path: Union
         client.close()  # Close the MongoDB connection
         return False
 
-def match_face(image: Union[str, Path], db_path: Union[str, Path], db_uri="mongodb://localhost:27017/", db_name="face_recognition_db") -> List:
+def match_face(image: Union[str, Path], db_path: Union[str, Path]=db_path, db_uri=db_uri, db_name="faceid") -> List:
     '''This function takes in an image path and a database path.
     It extracts faces from the image, and for each face extracted, it tries to match it with the faces in the database.
     Unmatched faces are stored in MongoDB with a unique ID.'''
@@ -119,8 +120,7 @@ def match_face(image: Union[str, Path], db_path: Union[str, Path], db_uri="mongo
                 # Delete the cropped image
                 face_image_path.unlink()
             else:
-                # No match found, handle the unrecognized face
-                # Generate a unique ID for the unrecognized face
+                logging.info("====unrecognized faces detected within the picture====")
                 face_id = uuid4()
                 unmatched_faces_ids.append(face_id)
 

@@ -87,8 +87,6 @@ def add_unknown_persons():
         person_name = pair.get('name')
 
         if face_id and person_name:
-            # Update the database with the provided name for the unrecognized face
-            # Implement this function based on your MongoDB database structure
             update_result = update_unrecognized_face_name(face_id, person_name)
             if update_result:
                 updated_faces.append({'id': face_id, 'name': person_name})
