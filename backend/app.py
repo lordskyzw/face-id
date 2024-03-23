@@ -1,14 +1,13 @@
 import os
 import base64
 import json
-from concurrent.futures import ProcessPoolExecutor
 from fuzzywuzzy import process
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from mimetypes import guess_type
 from pathlib import Path
 from uuid import uuid4  
-from backend.utils import match_face, update_unrecognized_face_name
+from utils import match_face, update_unrecognized_face_name
 import logging
 
 
