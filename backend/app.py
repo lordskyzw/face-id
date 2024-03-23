@@ -3,12 +3,12 @@ import base64
 import json
 from concurrent.futures import ProcessPoolExecutor
 from fuzzywuzzy import process
-from flask import Flask, request
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 from mimetypes import guess_type
 from pathlib import Path
 from uuid import uuid4  
-from backend.utils import match_face
+from backend.utils import match_face, update_unrecognized_face_name
 import logging
 
 
@@ -28,25 +28,23 @@ def test():
     }
 
 
-@app.route('/add_person', methods=['POST'])
-def add_person():
-    '''1.) receives base64 images
-    2.) sorts matched faces into their appropriate directories
-    TODO: add a way to identify unmatched faces and then ask for identification'''
+@app.route('/add_known_person', methods=['POST'])
+def add_known_person():
     req = request.get_json()
-    images = req.get('images') 
-    
+    images = req.get('images')
+    db_path = Path(db_path)  # Define your database directory path here
+
     if images:
-        # Ensuring the 'unprocessed' directory exists
         unprocessed_dir = Path('unprocessed')
         unprocessed_dir.mkdir(parents=True, exist_ok=True)
-        saved_image_paths = [] 
+
+        all_matched_faces = []
+        all_unmatched_faces_ids = []
 
         for base_64_image in images:
-            # for eaach base64 encoded image, decode it and save it in unprocessed directory
             _, encoded = base_64_image.split(",", 1)
             data = base64.b64decode(encoded)
-    
+
             unique_filename = f"temp_image_{uuid4()}.jpg"
             image_path = unprocessed_dir / unique_filename
 
@@ -55,18 +53,51 @@ def add_person():
                 logging.info(f'Image saved to {image_path}')
 
             try:
-                #find recognized faces in the image
-                matchedFaces = match_face(image=image_path, db_path=db_path)
+                matched_faces, unmatched_faces_ids = match_face(image=image_path, db_path=db_path)
+                all_matched_faces.extend(matched_faces)
+                all_unmatched_faces_ids.extend(unmatched_faces_ids)
                 logging.info("Successfully ran match_face() function")
             except Exception as e:
                 logging.error(f"ERROR IN match_face() function: {e}")
-                return {'error': f"Error in match_face() function{e}", 'statusCode': 500}
+                return jsonify({'error': f"Error in match_face() function: {e}", 'statusCode': 500})
 
-            saved_image_paths.append(str(image_path))
             os.remove(image_path)
-        
-        return {'matchedFaces': matchedFaces, 'statusCode': 200}
-            
+
+        if all_unmatched_faces_ids:
+            # Return the unmatched face IDs for further identification
+            return jsonify({'unmatchedFacesIds': all_unmatched_faces_ids, 'matchedFaces': all_matched_faces, 'statusCode': 200})
+        else:
+            # Every face is matched
+            return jsonify({'matchedFaces': all_matched_faces, 'statusCode': 200})
+
+    return jsonify({'error': 'No images provided', 'statusCode': 400})
+
+@app.route('/add_unknown_person', methods=['POST'])
+def add_unknown_persons():
+    req = request.get_json()
+    face_id_name_pairs = req.get('faces')  # Expecting a list of {'id': face_id, 'name': person_name}
+
+    if not face_id_name_pairs:
+        return jsonify({'error': 'No data provided', 'statusCode': 400})
+
+    updated_faces = []
+
+    for pair in face_id_name_pairs:
+        face_id = pair.get('id')
+        person_name = pair.get('name')
+
+        if face_id and person_name:
+            # Update the database with the provided name for the unrecognized face
+            # Implement this function based on your MongoDB database structure
+            update_result = update_unrecognized_face_name(face_id, person_name)
+            if update_result:
+                updated_faces.append({'id': face_id, 'name': person_name})
+
+    if updated_faces:
+        return jsonify({'updatedFaces': updated_faces, 'statusCode': 200})
+    else:
+        return jsonify({'error': 'Unable to update faces', 'statusCode': 500})
+
 
 @app.route('/search_person', methods=['POST'])
 def search():

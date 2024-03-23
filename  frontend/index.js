@@ -120,7 +120,7 @@ uploadButton.addEventListener('click', () => {
 });
 
 function sendImages(images) {
-    fetch('http://localhost:5000/add_person', {
+    fetch('http://localhost:5000/add_known_person', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'

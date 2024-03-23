@@ -1,8 +1,10 @@
 deepface
 flask
 numpy
+pandas
 opencv-python-headless
 ultralytics
 Flask-Cors
 pillow
 fuzzywuzzy
+pymongo
