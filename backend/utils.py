@@ -8,6 +8,8 @@ from uuid import uuid4
 from deepface import DeepFace
 from typing import Union, List
 from bson.binary import Binary
+import base64
+from io import BytesIO
 
 
 db_uri = os.environ.get("MONGO_URL")
@@ -23,7 +25,11 @@ def store_unrecognized_face(face_image_path: Path, full_image_path: Path, face_i
 
 def update_unrecognized_face_name(face_id: str, person_name: str, db_path: Union[str, Path], db_uri=db_uri, db_name="faceid") -> bool:
     '''Update the name for an unrecognized face in the MongoDB database and move the picture to the named directory.'''
+    
+    # Ensure db_path is a Path object
     db_path = Path(db_path) if isinstance(db_path, str) else db_path
+
+    # Connect to MongoDB
     client = pymongo.MongoClient(db_uri)
     db = client[db_name]
 
@@ -34,18 +40,24 @@ def update_unrecognized_face_name(face_id: str, person_name: str, db_path: Union
     face_document = unmatched_faces_collection.find_one({"face_id": face_id})
 
     if face_document:
-        # Retrieve the image binary data
-        image_data = face_document['image']
+        # Retrieve the binary data for cropped and full images
+        cropped_image_data, full_image_data = face_document['cropped_and_full_path']
 
         # Create a directory for the person if it doesn't exist
         person_dir = db_path / person_name
         person_dir.mkdir(parents=True, exist_ok=True)
 
-        # Write the image data to a file in the person's directory
-        image_path = person_dir / f"{face_id}.jpg"
-        with open(image_path, 'wb') as image_file:
-            image_file.write(image_data)
-        logging.info(f"==================added {person_name} to DIRECTORY: {person_dir}")
+        # Write the cropped and full images to files in the person's directory
+        cropped_image_path = person_dir / f"{face_id}_cropped.jpg"
+        full_image_path = person_dir / f"{face_id}_full.jpg"
+
+        with open(cropped_image_path, 'wb') as cropped_file:
+            cropped_file.write(cropped_image_data)
+        with open(full_image_path, 'wb') as full_file:
+            full_file.write(full_image_data)
+
+        logging.info(f"Images for {person_name} saved to directory: {person_dir}")
+
         # Optionally, delete the document from MongoDB after processing
         unmatched_faces_collection.delete_one({"face_id": face_id})
 
@@ -69,6 +81,7 @@ def match_face(image: Union[str, Path], db_path: Union[str, Path]=db_path, db_ur
     db_path = Path(db_path) if isinstance(db_path, str) else db_path
     matched_faces_names = []
     unmatched_faces_ids = []
+    unmatched_faces_data = []
 
     # Extract faces from the input image
     faces_detected = DeepFace.extract_faces(
@@ -118,13 +131,18 @@ def match_face(image: Union[str, Path], db_path: Union[str, Path]=db_path, db_ur
                 # Delete the cropped image
                 face_image_path.unlink()
             else:
-                logging.info("====unrecognized faces detected within the picture====")
+                # For unmatched faces, store both full image and cropped face
                 face_id = uuid4()
-                unmatched_faces_ids.append(face_id)
+                unmatched_faces_ids.append(str(face_id))  # Store as string for JSON compatibility
 
-                # Store the face and its ID in MongoDB
-                store_unrecognized_face(face_image_path, image_path, face_id, db)
+                store_unrecognized_face(face_image_path, image_path, str(face_id), db)  # Ensure IDs are strings
+
+                # Convert cropped face to base64 for frontend
+                buffered = BytesIO()
+                cropped_face.save(buffered, format="JPEG")
+                encoded_cropped_face = base64.b64encode(buffered.getvalue()).decode('utf-8')
+                unmatched_faces_data.append({'id': str(face_id), 'image': encoded_cropped_face})
 
 
     client.close()  # Close the MongoDB connection
-    return matched_faces_names, unmatched_faces_ids
+    return matched_faces_names, unmatched_faces_data
