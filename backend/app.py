@@ -96,7 +96,7 @@ def add_unknown_persons():
         return jsonify({'error': 'Unable to update faces', 'statusCode': 500})
 
 
-@app.route('/searchperson', methods=['POST'])
+@app.route('/search_person', methods=['POST'])
 def search():
     req = request.get_json()
     search_name = req['name']
