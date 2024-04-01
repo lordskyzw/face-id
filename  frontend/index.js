@@ -7,7 +7,7 @@ document.getElementById('search-form').addEventListener('submit', function(event
 
     const searchName = document.getElementById('search-input').value;
 
-    fetch('https://face-id.up.railway.app/search_person', {
+    fetch('https://face-id-production.up.railway.app/search_person', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -120,12 +120,12 @@ uploadButton.addEventListener('click', () => {
 });
 
 function sendImages(images) {
-    fetch('http://localhost:5000/add_known_person', {
+    fetch('https://face-id-production.up.railway.app/add_known_person', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ images: images }) // Make sure the key matches with the server-side
+        body: JSON.stringify({ images: images })
     })
     .then(response => {
         if (!response.ok) {
@@ -135,6 +135,8 @@ function sendImages(images) {
     })
     .then(data => {
         console.log('Response:', data);
+        //create a modal which shows which names have been added
+        //also we may get images of new faces detected back so we need to handle that here
     })
     .catch(error => {
         console.error('Error:', error.message);

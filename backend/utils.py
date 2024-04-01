@@ -13,19 +13,17 @@ from bson.binary import Binary
 db_uri = os.environ.get("MONGO_URL")
 db_path = Path("dataset")
 
-def store_unrecognized_face(face_image_path: Path, face_id: str, db):
-    '''Store the unmatched face image and its ID in MongoDB.'''
+def store_unrecognized_face(face_image_path: Path, full_image_path: Path, face_id: str, db):
+    '''Store the unmatched cropped face image and its full version along with ID in MongoDB.'''
     with open(face_image_path, "rb") as image_file:
-        encoded_image = Binary(image_file.read())  # Encode the image file to binary format for MongoDB
-    db.unmatched_faces.insert_one({"face_id": str(face_id), "image": encoded_image})
+        encoded_cropped_image = Binary(image_file.read())  # Encode the image file to binary format for MongoDB
+    with open(full_image_path, "rb") as full_image:
+        encoded_full_image = Binary(full_image.read())
+    db.unmatched_faces.insert_one({"face_id": str(face_id), "cropped_and_full_path": (encoded_cropped_image, encoded_full_image)})
 
 def update_unrecognized_face_name(face_id: str, person_name: str, db_path: Union[str, Path], db_uri=db_uri, db_name="faceid") -> bool:
     '''Update the name for an unrecognized face in the MongoDB database and move the picture to the named directory.'''
-
-    # Ensure db_path is a Path object
     db_path = Path(db_path) if isinstance(db_path, str) else db_path
-
-    # Connect to MongoDB
     client = pymongo.MongoClient(db_uri)
     db = client[db_name]
 
@@ -125,10 +123,8 @@ def match_face(image: Union[str, Path], db_path: Union[str, Path]=db_path, db_ur
                 unmatched_faces_ids.append(face_id)
 
                 # Store the face and its ID in MongoDB
-                store_unrecognized_face(face_image_path, face_id, db)
+                store_unrecognized_face(face_image_path, image_path, face_id, db)
 
-                # Delete the cropped image
-                face_image_path.unlink()
 
     client.close()  # Close the MongoDB connection
     return matched_faces_names, unmatched_faces_ids
