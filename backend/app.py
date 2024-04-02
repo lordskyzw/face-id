@@ -87,7 +87,7 @@ def add_unknown_persons():
         person_name = pair.get('name')
 
         if face_id and person_name:
-            update_result = update_unrecognized_face_name(face_id, person_name)
+            update_result = update_unrecognized_face_name(face_id=face_id, person_name=person_name)
             if update_result:
                 updated_faces.append({'id': face_id, 'name': person_name})
 
@@ -126,6 +126,7 @@ def search():
 def upload_images():
     req = request.get_json()
     images = req.get('images')
+    logging.info(f"Amount of images received: {len(images)}")
     db_path = Path('dataset')  # Define your database directory path here
 
     if not images:

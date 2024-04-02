@@ -24,6 +24,7 @@ def store_unrecognized_face(face_image_path: Path, full_image_path: Path, face_i
     # create the directories if they don't exist
     face_image_path.parent.mkdir(parents=True, exist_ok=True)
     full_image_path.parent.mkdir(parents=True, exist_ok=True)
+    logging.info(f"=============Directories created are {face_image_path.parent} and {full_image_path.parent}================================")
     with open(face_image_path, "rb") as image_file:
         encoded_cropped_image = Binary(image_file.read())  # Encode the image file to binary format for MongoDB
     with open(full_image_path, "rb") as full_image:
@@ -54,6 +55,7 @@ def update_unrecognized_face_name(face_id: str, person_name: str, db_path: Union
         # Create a directory for the person if it doesn't exist
         person_dir = db_path / person_name
         person_dir.mkdir(parents=True, exist_ok=True)
+        logging.info(f"Person directory created: {person_dir}")
 
         # Write the cropped and full images to files in the person's directory
         cropped_image_path = person_dir / f"{face_id}_cropped.jpg"
