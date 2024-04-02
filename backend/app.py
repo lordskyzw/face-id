@@ -52,10 +52,11 @@ def add_known_person():
                 logging.info(f'Image saved to {image_path}')
 
             try:
+                logging.info("Running match_face() function")
                 matched_faces, unmatched_faces_ids = match_face(image=image_path, db_path=db_path)
+                logging.info(f"Matched faces: {matched_faces}")
                 all_matched_faces.extend(matched_faces)
                 all_unmatched_faces_ids.extend(unmatched_faces_ids)
-                logging.info("Successfully ran match_face() function")
             except Exception as e:
                 logging.error(f"ERROR IN match_face() function: {e}")
                 return jsonify({'error': f"Error in match_face() function: {e}", 'statusCode': 500})
@@ -125,7 +126,7 @@ def search():
 def upload_images():
     req = request.get_json()
     images = req.get('images')
-    db_path = Path(db_path)  # Define your database directory path here
+    db_path = Path('dataset')  # Define your database directory path here
 
     if not images:
         return jsonify({'error': 'No images provided', 'statusCode': 400})
@@ -147,16 +148,10 @@ def upload_images():
             f.write(data)
             logging.info(f'Image saved to {image_path}')
 
-        try:
-            matched_faces, unmatched_faces_info = match_face(image=image_path, db_path=db_path)  # Update match_face to return info needed for frontend
-            all_matched_faces.extend(matched_faces)
-            all_unmatched_faces_data.extend(unmatched_faces_info)  # Assume this includes base64 data for each face
-            logging.info("Successfully ran match_face() function")
-        except Exception as e:
-            logging.error(f"ERROR IN match_face() function: {e}")
-            return jsonify({'error': f"Error in match_face() function: {e}", 'statusCode': 500})
-
-        os.remove(image_path)
+        
+        matched_faces, unmatched_faces_info = match_face(image=image_path, db_path=db_path)  # Update match_face to return info needed for frontend
+        all_matched_faces.extend(matched_faces)
+        all_unmatched_faces_data.extend(unmatched_faces_info)  # Assume this includes base64 data for each face
 
     return jsonify({'matchedFaces': all_matched_faces, 'unmatchedFacesData': all_unmatched_faces_data, 'statusCode': 200})
 
@@ -172,7 +167,7 @@ def verify_faces():
     updated_faces = []
 
     for pair in face_id_name_pairs:
-        face_id = pair.get('id')
+        face_id = pair.get('face_id')
         person_name = pair.get('name')
 
         if face_id and person_name:

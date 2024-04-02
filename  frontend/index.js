@@ -120,7 +120,7 @@ uploadButton.addEventListener('click', () => {
 });
 
 function sendImages(images) {
-    fetch('https://face-id-production.up.railway.app/add_known_person', {
+    fetch('https://face-id-production.up.railway.app/upload', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
