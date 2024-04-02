@@ -101,15 +101,17 @@ def match_face(image: Union[str, Path], db_path: Union[str, Path]=db_path, db_ur
     )
     logging.info(f"amount of Faces detected: {len(faces_detected)}") #faces_detected is a list of dictionaries 
     i=0
+    match_found = False
         
-    for face_info in faces_detected:
-        #logging.info(f"face_info structure: {face_info}")  # Add this line to inspect face_info
+    for each_face in faces_detected:
+        
+        #logging.info(f"each_face structure: {each_face}")  # Add this line to inspect each_face
         try:
             facial_area= faces_detected[i]['facial_area']
             confidence = faces_detected[i]['confidence']
             
         except ValueError as e:
-            logging.error(f"Error unpacking face_info: {e}, face_info: {face_info}")
+            logging.error(f"Error unpacking each_face: {e}, each_face: {each_face}")
             continue
         if confidence > 0.7:
             # Crop the face from the image and save it to cropped directory
@@ -130,7 +132,6 @@ def match_face(image: Union[str, Path], db_path: Union[str, Path]=db_path, db_ur
             face_image_path.parent.mkdir(parents=True, exist_ok=True)
             cropped_face.save(face_image_path)
             logging.info(f"Face saved to {face_image_path}")
-            logging.info(f"running DeepFace.find() on {face_image_path}")
 
             # Attempt to find a match in the database
             recognition_results = DeepFace.find(
@@ -138,12 +139,9 @@ def match_face(image: Union[str, Path], db_path: Union[str, Path]=db_path, db_ur
                 db_path=str(db_path),
                 enforce_detection=False
             )
-            logging.info("ran DeepFace.find()")
-            logging.info(f"Recognition results type: {type(recognition_results)}")
-            logging.info(f"Recognition results: {recognition_results}")
-            #later find the shape of the recognition_results if its an ndarray
 
             if len(recognition_results) > 0:
+                logging.info
 
                 for df in recognition_results:
 
@@ -155,6 +153,7 @@ def match_face(image: Union[str, Path], db_path: Union[str, Path]=db_path, db_ur
                             distance = row['distance']
 
                             if distance < 0.25:
+                                match_found = True
                                 # Match found, handle the recognized face
                                 logging.info("Match found for the face")
                                 person_name = Path(identity).stem  # Extract the person's name from the file name
@@ -167,27 +166,33 @@ def match_face(image: Union[str, Path], db_path: Union[str, Path]=db_path, db_ur
 
                                 logging.info(f"Image of {person_name} saved to {person_dir / face_image_path.name}")
                                 matched_faces_names.append(person_name)
+                                
                                 break
                             else:
-                                logging.info("No match found for the face")
-                                # For unmatched faces, store both full image and cropped face
-                                face_id = uuid4()
-                                unmatched_faces_ids.append(str(face_id))  # Store as string for JSON compatibility
-
-                                store_unrecognized_face(face_image_path, image_path, str(face_id), db)  # Ensure IDs are strings
-                                logging.info(f"Unmatched face stored with ID: {face_id}, in MongoDB")
-
-                                # Convert cropped face to base64 for frontend
-                                buffered = BytesIO()
-                                cropped_face.save(buffered, format="JPEG")
-                                encoded_cropped_face = base64.b64encode(buffered.getvalue()).decode('utf-8')
-                                unmatched_faces_data.append({'id': str(face_id), 'image': encoded_cropped_face})
+                                logging.info("this df row doesnt have the match for the face")
+            
+                                
                     else:
                         logging.info("df is empty")
                         
         else:
             logging.info(f"Face confidence is less than 0.7, skipping face {i}")
+            
         i+=1
+
+        if not match_found:
+            logging.info("No match found for the face")
+            face_id = uuid4()
+            unmatched_faces_ids.append(str(face_id))  # Store as string for JSON compatibility
+
+            store_unrecognized_face(face_image_path, image_path, str(face_id), db)  # Ensure IDs are strings
+            logging.info(f"Unmatched face stored with ID: {face_id}, in MongoDB")
+
+            # Convert cropped face to base64 for frontend
+            buffered = BytesIO()
+            cropped_face.save(buffered, format="JPEG")
+            encoded_cropped_face = base64.b64encode(buffered.getvalue()).decode('utf-8')
+            unmatched_faces_data.append({'id': str(face_id), 'image': encoded_cropped_face})
 
 
     client.close()

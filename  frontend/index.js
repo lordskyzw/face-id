@@ -135,19 +135,129 @@ function sendImages(images) {
     })
     .then(data => {
         console.log('Response:', data);
-        //create a modal which shows which names have been added
-        //also we may get images of new faces detected back so we need to handle that here
+
+        // Handle matched faces with a modal
+        if (data.matchedFaces.length > 0) {
+            const matchedNames = data.matchedFaces.join(', ');
+            showModal(`Matched Faces: ${matchedNames}`);
+        }
+
+        // Handle unmatched faces
+        const unmatchedContainer = document.getElementById('unmatchedFacesContainer');
+        if (data.unmatchedFacesData.length > 0) {
+            unmatchedContainer.classList.remove('hidden'); // Show the container
+        } else {
+            unmatchedContainer.classList.add('hidden'); // Ensure it's hidden if there are no unmatched faces
+        }
+
+        unmatchedContainer.innerHTML = ''; // Clear previous unmatched faces
+        data.unmatchedFacesData.forEach(face => {
+            const faceDiv = document.createElement('div');
+            faceDiv.setAttribute('data-face-id', face.id);
+            const img = new Image();
+            img.src = `data:image/jpeg;base64,${face.image}`;
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.placeholder = 'Enter name';
+            input.required = true;
+
+            const confirmButton = document.createElement('button');
+            confirmButton.textContent = 'Confirm';
+            confirmButton.onclick = function() {
+                if (input.value.trim() !== '') {
+                    // Send the name and face ID to the validation endpoint
+                    confirmFaceName(face.id, input.value);
+                } else {
+                    // Optionally, alert the user or handle the empty input case gracefully
+                    console.error('Name is required'); // Log an error or alert the user
+                    // For a better user experience, consider adding a visual indication that the input is required
+                    input.classList.add('input-required'); // Example: add a class that styles the border in red
+                }
+            };
+
+            faceDiv.appendChild(img);
+            faceDiv.appendChild(input);
+            faceDiv.appendChild(confirmButton);
+            unmatchedContainer.appendChild(faceDiv);
+        });
     })
     .catch(error => {
         console.error('Error:', error.message);
     })
     .finally(() => {
         // Clear the array after uploading
-        base64Images = [];
-        updateDropCounter(); // Reset drop counter
+        base64Images = []; // Make sure this variable is defined in your script
+        updateDropCounter(); // Make sure this function is defined in your script
+        const uploadButton = document.getElementById('uploadButton');
         uploadButton.setAttribute('disabled', 'disabled');
     });
 }
+
+function showModal(text) {
+    const modal = document.getElementById("myModal");
+    const modalText = document.getElementById("modalText");
+    const span = document.getElementsByClassName("close")[0];
+
+    modalText.innerText = text;
+    modal.style.display = "block";
+
+    // When the user clicks on <span> (x), close the modal
+    span.onclick = function() {
+        modal.style.display = "none";
+    }
+
+    // When the user clicks anywhere outside of the modal, close it
+    window.onclick = function(event) {
+        if (event.target == modal) {
+            modal.style.display = "none";
+        }
+    }
+}
+
+
+
+function confirmFaceName(faceId, name) {
+    const verificationUrl = 'https://face-id-production.up.railway.app/verification';
+
+    fetch(verificationUrl, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ faces: [{ face_id: faceId, name: name }] })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Verification Response:', data);
+        
+        // Assume successful response includes an array of updatedFaces
+        if (data.updatedFaces && data.updatedFaces.length > 0) {
+            // Remove the divs for the verified faces
+            data.updatedFaces.forEach(face => {
+                const faceDiv = document.querySelector(`div[data-face-id="${face.id}"]`);
+                if (faceDiv) {
+                    faceDiv.remove();  // Remove the div from the DOM
+                }
+            });
+
+            // Show a pop-up indicating success
+            alert("Person(s) added successfully!");
+        } else {
+            // Handle the case where no faces were updated successfully
+            alert("No faces were added. Please try again.");
+        }
+    })
+    .catch(error => {
+        console.error('Verification Error:', error);
+        alert("An error occurred during verification. Please try again.");
+    });
+}
+
 
 function updateDropCounter() {
     document.getElementById('drop-counter').textContent = `Dropped ${base64Images.length} photo(s)`;
