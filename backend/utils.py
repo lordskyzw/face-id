@@ -126,6 +126,7 @@ def match_face(image: Union[str, Path], db_path: Union[str, Path]=db_path, db_ur
             lower = min(y + height + margin_height, img.height)
 
             cropped_face = img.crop((left, upper, right, lower))
+            cropped_face = cropped_face.convert('RGB')
             face_image_path = Path('cropped') / f"{uuid4()}.jpg"
             
             #create the directory if it doesn't exist
